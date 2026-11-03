@@ -1,5 +1,7 @@
 # Solution Document: Adherence Reporting Reconciliation
 
+**Prepared by:** Piyush Gupta
+
 > **How to run:** Read [`README.md`](README.md) first for installation,
 > data-generation, Gemini extraction, and dashboard startup commands.
 
@@ -230,16 +232,64 @@ not the intended final evaluation size.
 
 ## 6. Tech stack
 
-- Python 3.14
-- Pandas for tabular generation and evaluation
-- NumPy for deterministic synthetic event generation
-- Python standard library `urllib` for Gemini REST calls
-- Gemini `gemini-flash-lite-latest`
-- Vanilla HTML, CSS, and JavaScript for the dashboard
-- CSV and JSON outputs for portable review
-- Synthea CSV exports as the preferred public synthetic-data source
+### Data generation and analytical processing
 
-No frontend build system or external browser JavaScript dependency is required.
+- **Python 3.14** is used for the reproducible command-line data and
+  analytical workflows.
+- **Pandas** is used to load, transform, join, validate, and aggregate patient,
+  pharmacy-fill, CRM-note, and extraction-result tables.
+- **NumPy** supports deterministic random generation of dates, adherence
+  patterns, refill events, and case-specific synthetic attributes.
+- **Synthea CSV exports** provide the preferred source-shaped patient,
+  encounter, and medication history. The deterministic demo mode is used when
+  a local Synthea runtime is unavailable.
+
+### Adherence analytics
+
+- `generate_synthetic_patient_data.py` creates the 10,000-patient dataset and
+  normalized event tables.
+- `analyze_adherence_gap.py` calculates pipeline PDC, the CRM operational
+  indicator, Exhibit 2 outputs, and the sequential population/definition/source
+  bridge.
+- PDC and bridge calculations are performed at patient level before
+  aggregation, making the result inspectable and reproducible.
+- CSV and Markdown outputs provide portable analytical artifacts that can be
+  reviewed without a database or frontend build step.
+
+### LLM integration
+
+- **Google Gemini `gemini-flash-lite-latest`** extracts structured missed-dose,
+  refill-delay, discontinuation, reason, and evidence fields from CRM notes.
+- The integration uses the **Gemini `v1beta` REST API** with the
+  `x-goog-api-key` header.
+- Python standard-library **`urllib`** handles HTTPS requests, so no additional
+  SDK is required.
+- A constrained JSON response schema, deterministic generation settings,
+  labelled evaluation records, quota status, and cumulative 15-note batches
+  support controlled evaluation.
+- The API key is loaded from local `.env` configuration and is never exposed to
+  the browser.
+
+### Dashboard and local serving
+
+- **Vanilla HTML, CSS, and JavaScript** implement the browser dashboard without
+  a frontend framework or build pipeline.
+- The UI uses browser `fetch`, local CSV/JSON parsing, responsive CSS, filters,
+  quarter toggles, KPI cards, tables, gap-bridge visualizations, and note-level
+  evidence rendering.
+- `dashboard_server.py` uses Python's `http.server` to serve the dashboard and
+  exposes a local POST endpoint for the next Gemini evaluation batch.
+- The browser loads generated files from `data/generated/`; it does not read
+  `.env` or call Gemini directly.
+
+### Portability and validation
+
+- The project uses **CSV** for tabular records and **JSON** for extraction
+  metrics and quota status, keeping outputs easy to inspect and exchange.
+- Python `py_compile`, deterministic generation, bridge reconciliation checks,
+  and local HTTP smoke tests provide lightweight validation.
+- The implementation has no database, frontend package manager, external
+  browser JavaScript dependency, or production hosting requirement.
 
 ## 7. Use of LLMs
 
