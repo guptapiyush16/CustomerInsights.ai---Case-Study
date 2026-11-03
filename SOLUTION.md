@@ -357,6 +357,61 @@ evidence, and Gemini quota-limit/reset status.
 The browser never reads `.env` or calls Gemini directly. It only loads
 generated CSV/JSON outputs from the local data folder.
 
+### Task 4 — Unified adherence definition and data-quality implementation
+
+The two existing systems should continue to show their operational measures,
+but future primary reporting should use one approved pharmacy-based definition.
+I propose:
+
+> A patient is adherent when their pharmacy-based PDC is at least 80% during
+> the approved quarterly measurement period.
+
+The calculation is:
+
+`PDC = eligible medication-covered days / eligible days in the period × 100`
+
+The unified standard should use eligible enrolled patients who have initiated
+the relevant therapy, an approved calendar quarter, and validated
+specialty-pharmacy fill records as the primary source. Patients without
+sufficient fill information should be reported as **insufficient data**, not
+automatically classified as adherent or non-adherent. Discontinuations and
+clinician-directed treatment holds should be handled through client-approved
+eligibility and exclusion rules.
+
+#### Implementation workflow
+
+1. Identify eligible enrolled patients and therapy initiation dates.
+2. Retrieve specialty-pharmacy fills within the approved measurement period.
+3. Validate patient identifiers, fill dates, and days-supply values.
+4. Remove duplicate transactions and resolve overlapping coverage without
+   double-counting covered days.
+5. Calculate patient-level PDC and classify PDC >=80% as adherent.
+6. Keep insufficient-data patients in a separately reported category.
+7. Aggregate the patient-level classifications into the quarterly metric.
+
+CRM case-manager notes remain supporting evidence for missed doses, refill
+delays, and discontinuation reasons. LLM extraction can structure those notes,
+but it does not replace the pharmacy-based PDC calculation or convert
+documentation into proof of medication consumption.
+
+#### Automated data-quality checks
+
+The production pipeline should check for duplicate patient IDs, duplicate
+fills, missing identifiers, missing fill dates, zero/negative or implausible
+days supply, overlapping coverage, unmatched hub and CRM patients, missing CRM
+notes, stale notes, and unexpected quarter-over-quarter PDC changes. A
+reconciliation check should confirm that patient-level classifications
+reproduce the reported aggregate figures.
+
+#### Monitoring and governance
+
+Each quarter, compare eligible-patient counts, fill completeness, CRM-note
+coverage, unmatched records, PDC classifications, and changes in population,
+definition, or source. Material differences should create a data-quality
+warning and be investigated before management or board reporting. This
+standard creates a consistent, reproducible, and auditable primary measure
+while preserving CRM information as useful operational context.
+
 ### Point 5 — Produce a defensible submission and explain limitations
 
 Completed through this document, the generated bridge report, and the
