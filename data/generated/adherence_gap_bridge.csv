@@ -1,0 +1,3 @@
+quarter,enrolled_patients,crm_population_patients,crm_note_patients,crm_note_coverage,hub_fill_patients,pipeline_rate,crm_rate,total_gap_crm_minus_pipeline,population_effect,definition_effect,source_effect,bridge_check
+this_quarter,10000,10000,10000,1.0,10000,0.58,0.71,0.13,0.0,0.06410000000000005,0.06589999999999996,0.13
+last_quarter,10000,10000,10000,1.0,10000,0.64,0.72,0.07999999999999996,0.0,0.013499999999999956,0.0665,0.07999999999999996

@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adherence reconciliation</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #dce3ec;
+      --panel: #ffffff;
+      --canvas: #eef1f5;
+      --navy: #152b62;
+      --blue: #2867e8;
+      --teal: #129b93;
+      --amber: #f2a500;
+      --red: #df3b62;
+      --shadow: 0 2px 8px rgba(31, 48, 77, .08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); font: 12px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; }
+    .shell { max-width: 1280px; margin: 18px auto; padding: 16px 18px 26px; background: #f7f9fb; border: 1px solid #d5dce5; border-radius: 7px; box-shadow: 0 4px 18px rgba(31, 48, 77, .12); }
+    header { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-bottom: 12px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 16px; letter-spacing: -.02em; }
+    h2 { font-size: 12px; }
+    .eyebrow { color: var(--ink); font-size: 9px; font-weight: 800; letter-spacing: .03em; margin-bottom: 1px; }
+    .subtitle { color: var(--muted); margin-top: 1px; font-size: 10px; }
+    .status { color: var(--muted); font-size: 10px; text-align: right; }
+    .brand-mark { display: inline-grid; place-items: center; width: 25px; height: 25px; margin-right: 7px; border-radius: 6px; background: var(--navy); color: #fff; font-size: 12px; vertical-align: middle; }
+    .header-copy { display: inline-block; vertical-align: middle; }
+    .header-actions { display: flex; align-items: center; gap: 7px; }
+    .toolbar, .panel, .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; box-shadow: var(--shadow); }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 9px; padding: 10px; margin-bottom: 12px; }
+    label { color: var(--muted); display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
+    select, input[type="file"] { background: #fff; border: 1px solid #cbd5e1; border-radius: 5px; color: var(--ink); padding: 6px 8px; min-width: 135px; font-size: 11px; }
+    .toggle { display: flex; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: #f8fafc; }
+    .toggle button { border: 0; border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; padding: 6px 9px; font-size: 10px; font-weight: 700; }
+    .toggle button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+    .spacer { flex: 1; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 12px; }
+    .metric { padding: 12px; border-top: 3px solid var(--blue); }
+    .metric:nth-child(2) { border-top-color: var(--teal); }
+    .metric:nth-child(3) { border-top-color: var(--amber); }
+    .metric:nth-child(4) { border-top-color: #9aa8bb; }
+    .metric-label { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+    .metric-value { font-size: 22px; font-weight: 800; letter-spacing: -.04em; margin-top: 4px; }
+    .metric-detail { color: var(--muted); font-size: 9px; margin-top: 3px; }
+    .layout { display: grid; grid-template-columns: .92fr 1.08fr; gap: 12px; }
+    .panel { padding: 12px; min-width: 0; }
+    .panel-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .panel-note { color: var(--muted); font-size: 9px; }
+    .bridge { display: grid; gap: 12px; }
+    .bridge-row { display: grid; grid-template-columns: 112px 1fr 58px; align-items: center; gap: 8px; }
+    .bridge-label { color: var(--muted); font-size: 9px; font-weight: 700; }
+    .bar-track { background: #eef2f7; border-radius: 99px; height: 13px; overflow: hidden; position: relative; }
+    .bar { border-radius: 99px; height: 100%; min-width: 2px; transition: width .25s ease; }
+    .bar.pipeline { background: var(--blue); }
+    .bar.crm { background: var(--teal); }
+    .bar.population { background: #7c3aed; }
+    .bar.definition { background: var(--amber); }
+    .bar.source { background: var(--red); }
+    .bridge-value { font-variant-numeric: tabular-nums; font-size: 9px; font-weight: 800; text-align: right; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 9px; margin-top: 12px; }
+    .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+    .legend .l-pop::before { background: #7c3aed; } .legend .l-def::before { background: var(--amber); } .legend .l-source::before { background: var(--red); }
+    .table-wrap { overflow: auto; max-height: 430px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #edf1f6; padding: 7px 6px; text-align: left; white-space: nowrap; }
+    th { color: var(--muted); font-size: 8px; position: sticky; top: 0; background: #fff; text-transform: uppercase; letter-spacing: .06em; }
+    td { font-size: 9px; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .pill { border-radius: 99px; display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; }
+    .pill.good { background: #dcfce7; color: #166534; } .pill.warn { background: #fef3c7; color: #92400e; }
+    .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+    .method { color: var(--muted); font-size: 9px; margin-top: 10px; }
+    .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; display: none; margin-bottom: 16px; padding: 12px 14px; }
+    .signal-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .signal-card { background: #f8fafc; border: 1px solid var(--line); border-radius: 7px; padding: 9px; }
+    .signal-card strong { display: block; font-size: 17px; margin-top: 3px; }
+    .signal-card span { color: var(--muted); font-size: 9px; }
+    button:not(.toggle button) { border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; color: var(--navy); cursor: pointer; padding: 6px 9px; font-size: 10px; font-weight: 700; }
+    button:not(.toggle button):hover { background: #eff6ff; }
+    .note-table { max-height: 360px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .metrics { grid-template-columns: repeat(2, 1fr); } header { display: block; } .status { margin-top: 12px; text-align: left; } .shell { margin: 0; border-radius: 0; } }
+    @media (max-width: 560px) { .shell { padding: 20px 14px 32px; } .metrics { grid-template-columns: 1fr 1fr; gap: 8px; } .metric { padding: 13px; } .metric-value { font-size: 22px; } .bridge-row { grid-template-columns: 105px 1fr 58px; gap: 6px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <span class="brand-mark">◉</span><div class="header-copy"><div class="eyebrow">AdherencePulse · Live Reconciliation</div>
+        <h1>Enterprise Pharmaceutical CRM &amp; Adherence Intelligence</h1>
+        <p class="subtitle">Patient-level reconciliation of pipeline and client CRM adherence reporting.</p></div>
+      </div>
+      <div class="header-actions">
+        <div class="status">Model: inference server<br><strong>Gemini 1.5 Pro · Online</strong></div>
+        <button type="button" onclick="window.print()">Export report</button>
+        <div class="status" id="data-status">Loading generated records…</div>
+      </div>
+    </header>
+
+    <div class="error" id="error" role="alert"></div>
+    <section class="toolbar" aria-label="Dashboard filters">
+      <div class="toggle" role="group" aria-label="Quarter">
+        <button type="button" data-quarter="this_quarter" aria-pressed="true">This quarter</button>
+        <button type="button" data-quarter="last_quarter" aria-pressed="false">Last quarter</button>
+      </div>
+      <label>Cohort
+        <select id="cohort-filter">
+          <option value="all">All enrolled</option>
+          <option value="adherent">Pipeline adherent</option>
+          <option value="non_adherent">Pipeline non-adherent</option>
+          <option value="crm_only">CRM population (≥1 fill)</option>
+        </select>
+      </label>
+      <label>Pharmacy hub
+        <select id="hub-filter"><option value="all">All hubs</option></select>
+      </label>
+      <label>Case manager
+        <select id="manager-filter"><option value="all">All case managers</option></select>
+      </label>
+      <div class="spacer"></div>
+      <label>Load another output folder
+        <input id="folder-picker" type="file" webkitdirectory directory multiple>
+      </label>
+    </section>
+
+    <section class="metrics" aria-label="Summary metrics">
+      <article class="metric"><div class="metric-label">Your pipeline</div><div class="metric-value" id="pipeline-rate">—</div><div class="metric-detail">PDC ≥ 80% of enrolled patients</div></article>
+      <article class="metric"><div class="metric-label">Client CRM</div><div class="metric-value" id="crm-rate">—</div><div class="metric-detail">Case-manager refill-on-schedule flag</div></article>
+      <article class="metric"><div class="metric-label">Observed gap</div><div class="metric-value" id="gap-rate">—</div><div class="metric-detail">CRM minus pipeline, percentage points</div></article>
+      <article class="metric"><div class="metric-label">Patients in view</div><div class="metric-value" id="patient-count">—</div><div class="metric-detail" id="population-detail">Filtered enrolled population</div></article>
+    </section>
+
+    <section class="layout">
+      <article class="panel">
+        <div class="panel-heading"><h2>Gap bridge</h2><span class="panel-note">Sequential: population → definition → source</span></div>
+        <div class="bridge" id="bridge"></div>
+        <div class="legend"><span class="l-pop">Population effect</span><span class="l-def">Measure-definition effect</span><span class="l-source">Data-source effect</span></div>
+        <p class="method">Effects are percentage-point contributions to CRM minus pipeline. The selected order makes the bridge reconcile exactly; another order can change individual attributions because effects interact.</p>
+      </article>
+      <article class="panel">
+        <div class="panel-heading"><h2>Cohort detail</h2><span class="panel-note" id="cohort-note">—</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Patient</th><th>Hub</th><th>Manager</th><th class="num">PDC</th><th>CRM</th><th>Status</th></tr></thead>
+            <tbody id="patient-table"></tbody>
+          </table>
+          <div class="empty" id="table-empty" hidden>No patients match the current filters.</div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel exhibit-panel">
+      <div class="panel-heading">
+        <div><h2>Exhibit 2 · Reported adherence</h2><p class="panel-note">The board-level comparison requested in the case study.</p></div>
+        <span class="pill good">Reconciled</span>
+      </div>
+      <table>
+        <thead><tr><th>Metric</th><th class="num">This quarter</th><th class="num">Last quarter</th><th>Definition</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Your pipeline</strong></td><td class="num" id="exhibit-pipeline-this">58.0%</td><td class="num">64.0%</td><td>All enrolled patients; pharmacy-fill PDC ≥ 80%</td></tr>
+          <tr><td><strong>Client CRM</strong></td><td class="num" id="exhibit-crm-this">71.0%</td><td class="num">72.0%</td><td>Patients with a fill; case-manager refill-on-schedule flag</td></tr>
+        </tbody>
+      </table>
+      <p class="method">The synthetic records are generated for analytical demonstration only. Pharmacy fills measure medication availability, not whether a patient actually took each dose.</p>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="panel-heading">
+        <div><h2>Task 3 · CRM note intelligence</h2><p class="panel-note">Gemini extracts adherence signals from free-text notes; the key remains server-side.</p></div>
+        <div style="display:flex;gap:8px;align-items:center"><button type="button" id="evaluate-batch">Evaluate next 15</button><span class="pill" id="llm-status">Not run</span></div>
+      </div>
+      <div class="signal-grid" id="signal-metrics">
+        <div class="signal-card"><span>Missed-dose F1</span><strong>—</strong></div>
+        <div class="signal-card"><span>Refill-delay F1</span><strong>—</strong></div>
+        <div class="signal-card"><span>Discontinuation F1</span><strong>—</strong></div>
+        <div class="signal-card"><span>Accuracy</span><strong>—</strong></div>
+      </div>
+      <p class="method" id="llm-method">Run the local extraction command to populate this section. Refill-derived evidence is not ground truth for whether medication was swallowed.</p>
+      <div class="table-wrap note-table" style="margin-top: 12px;">
+        <table>
+          <thead><tr><th>Patient</th><th>Note</th><th>Missed doses</th><th>Refill delay</th><th>Discontinuation</th><th>Evidence</th></tr></thead>
+          <tbody id="note-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="method" style="padding: 22px 4px 0;">
+      <strong>Case-study data product:</strong> Synthea-shaped synthetic patient history, specialty-pharmacy fills, CRM notes, metric reconciliation, and explainable gap attribution.
+    </footer>
+  </main>
+
+  <script>
+    const state = { quarter: "this_quarter", patients: [], fills: [], notes: [], extraction: [], extractionMetrics: null, extractionStatus: null };
+    const $ = (id) => document.getElementById(id);
+    const pct = (value) => `${(value * 100).toFixed(1)}%`;
+    const pp = (value) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)} pp`;
+    const csv = (text) => {
+      const rows = []; let row = []; let cell = ""; let quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i], next = text[i + 1];
+        if (c === '"' && quoted && next === '"') { cell += '"'; i++; }
+        else if (c === '"') quoted = !quoted;
+        else if (c === "," && !quoted) { row.push(cell); cell = ""; }
+        else if ((c === "\n" || c === "\r") && !quoted) {
+          if (c === "\r" && next === "\n") i++;
+          row.push(cell); if (row.some((v) => v !== "")) rows.push(row);
+          row = []; cell = "";
+        } else cell += c;
+      }
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      const headers = rows.shift() || [];
+      return rows.map(values => Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""])));
+    };
+    const bool = (v) => v === true || String(v).toLowerCase() === "true";
+    async function readFile(file) { return csv(await file.text()); }
+    async function loadDefault() {
+      const names = ["patient_records.csv", "pharmacy_hub_fills.csv", "crm_case_manager_notes.csv"];
+      const files = await Promise.all(names.map(name => fetch(`data/generated/${name}`).then(r => {
+        if (!r.ok) throw new Error(`Could not load ${name}`);
+        return r.text();
+      })));
+      state.patients = csv(files[0]); state.fills = csv(files[1]); state.notes = csv(files[2]);
+      try {
+        const extraction = await fetch("data/generated/note_extraction_results.csv");
+        const metrics = await fetch("data/generated/note_extraction_metrics.json");
+        const status = await fetch("data/generated/note_extraction_status.json");
+        if (status.ok) {
+          state.extractionStatus = await status.json();
+        }
+        if (extraction.ok && metrics.ok) {
+          state.extraction = csv(await extraction.text());
+          state.extractionMetrics = await metrics.json();
+        } else {
+          renderExtractionStatus();
+        }
+      } catch (_) {
+        renderExtractionStatus();
+      }
+      render();
+    }
+    function selectOptions(id, values, first) {
+      const select = $(id); const current = select.value;
+      select.innerHTML = `<option value="all">${first}</option>` + [...new Set(values.filter(Boolean))].sort().map(v => `<option value="${v}">${v}</option>`).join("");
+      if ([...select.options].some(o => o.value === current)) select.value = current;
+    }
+    function filterPatients() {
+      const hub = $("hub-filter").value, manager = $("manager-filter").value, cohort = $("cohort-filter").value;
+      const q = state.quarter;
+      const hubs = Object.fromEntries(state.fills.filter(f => f.quarter === q).map(f => [f.patient_id, f.pharmacy_hub]));
+      const fillPatients = new Set(state.fills.filter(f => f.quarter === q).map(f => f.patient_id));
+      const notes = Object.fromEntries(state.notes.filter(n => n.quarter === q).map(n => [n.patient_id, n]));
+      return state.patients.filter(p => {
+        const n = notes[p.patient_id], pdc = Number(p[`${q}_pdc`] || 0);
+        return (!hub || hub === "all" || hubs[p.patient_id] === hub) &&
+          (!manager || manager === "all" || (n && n.case_manager === manager)) &&
+          (cohort === "all" || (cohort === "adherent" && pdc >= .8) || (cohort === "non_adherent" && pdc < .8) || (cohort === "crm_only" && fillPatients.has(p.patient_id)));
+      });
+    }
+    function calculateBridge(rows) {
+      const q = state.quarter, ids = new Set(rows.map(p => p.patient_id));
+      const notes = state.notes.filter(n => n.quarter === q && ids.has(n.patient_id));
+      const fills = state.fills.filter(f => f.quarter === q && ids.has(f.patient_id));
+      const noteMap = Object.fromEntries(notes.map(n => [n.patient_id, n]));
+      const fillMap = {};
+      fills.forEach(f => { (fillMap[f.patient_id] ||= []).push(f); });
+      const pipeline = rows.map(p => Number(p[`${q}_pdc`] || 0) >= .8);
+      const crmPopulation = rows.map(p => (fillMap[p.patient_id] || []).length > 0);
+      const hubFlag = rows.map(p => (fillMap[p.patient_id] || []).length > 0 && fillMap[p.patient_id].every(f => f.fill_status === "on_time"));
+      const crmFlag = rows.map(p => bool(noteMap[p.patient_id]?.refilled_on_schedule));
+      const mean = (values, population = values.map(() => true)) => {
+        const selected = values.filter((_, i) => population[i]);
+        return selected.reduce((a, v) => a + (v ? 1 : 0), 0) / (selected.length || 1);
+      };
+      const stages = [
+        mean(pipeline),
+        mean(pipeline, crmPopulation),
+        mean(hubFlag, crmPopulation),
+        mean(crmFlag, crmPopulation)
+      ];
+      return { pipeline: stages[0], population: stages[1] - stages[0], definition: stages[2] - stages[1], source: stages[3] - stages[2], crm: stages[3], gap: stages[3] - stages[0], crmPopulation: crmPopulation.filter(Boolean).length, noteCoverage: crmPopulation.filter((v, i) => v && !!noteMap[rows[i].patient_id]).length };
+    }
+    function renderBridge(b) {
+      const rows = [
+        ["Pipeline baseline", b.pipeline, "pipeline"],
+        ["Population effect", b.population, "population"],
+        ["Definition effect", b.definition, "definition"],
+        ["Source effect", b.source, "source"],
+        ["CRM observed", b.crm, "crm"]
+      ];
+      $("bridge").innerHTML = rows.map(([label, value, cls]) => `<div class="bridge-row"><div class="bridge-label">${label}</div><div class="bar-track"><div class="bar ${cls}" style="width:${Math.max(Math.abs(value) * 100, 0.4)}%"></div></div><div class="bridge-value">${cls === "pipeline" || cls === "crm" ? pct(value) : pp(value)}</div></div>`).join("");
+    }
+    function render() {
+      selectOptions("hub-filter", state.fills.map(f => f.pharmacy_hub), "All hubs");
+      selectOptions("manager-filter", state.notes.map(n => n.case_manager), "All case managers");
+      const rows = filterPatients(), bridge = calculateBridge(rows), q = state.quarter;
+      $("pipeline-rate").textContent = pct(bridge.pipeline); $("crm-rate").textContent = pct(bridge.crm);
+      $("gap-rate").textContent = pp(bridge.gap); $("patient-count").textContent = rows.length.toLocaleString();
+      $("population-detail").textContent = `${bridge.crmPopulation.toLocaleString()} with ≥1 specialty-pharmacy fill; ${bridge.noteCoverage.toLocaleString()} have CRM notes`;
+      $("cohort-note").textContent = `${rows.length.toLocaleString()} matching patients`;
+      renderBridge(bridge);
+      $("patient-table").innerHTML = rows.slice(0, 100).map(p => {
+        const note = state.notes.find(n => n.quarter === q && n.patient_id === p.patient_id);
+        const fill = state.fills.find(f => f.quarter === q && f.patient_id === p.patient_id);
+        const pdc = Number(p[`${q}_pdc`] || 0);
+        return `<tr><td>${p.patient_id}</td><td>${fill?.pharmacy_hub || "—"}</td><td>${note?.case_manager || "—"}</td><td class="num">${pct(pdc)}</td><td>${note && bool(note.refilled_on_schedule) ? "On schedule" : "Not on schedule"}</td><td><span class="pill ${pdc >= .8 ? "good" : "warn"}">${pdc >= .8 ? "Adherent" : "Non-adherent"}</span></td></tr>`;
+      }).join("");
+      $("table-empty").hidden = rows.length !== 0;
+      $("data-status").textContent = `${state.patients.length.toLocaleString()} synthetic patients · ${q === "this_quarter" ? "This quarter" : "Last quarter"}`;
+      renderExtraction();
+    }
+    function renderExtraction() {
+      const metrics = state.extractionMetrics;
+      if (!metrics) return;
+      const f1 = (name) => metrics[name]?.f1 == null ? "—" : pct(metrics[name].f1);
+      $("llm-status").textContent = "Gemini evaluated";
+      $("llm-status").className = "pill good";
+      $("signal-metrics").innerHTML = [
+        ["Missed-dose F1", f1("missed_doses")],
+        ["Refill-delay F1", f1("refill_delay")],
+        ["Discontinuation F1", f1("discontinuation")],
+        ["Accuracy", pct(metrics.extraction_accuracy_normalized_record || 0)]
+      ].map(([label, value]) => `<div class="signal-card"><span>${label}</span><strong>${value}</strong></div>`).join("");
+      const evidence = metrics.agreement_with_refill_evidence?.refill_delay_agreement;
+      $("llm-method").textContent = `Evaluated ${state.extraction.length.toLocaleString()} labelled notes. Refill-delay agreement with hub evidence: ${pct(evidence || 0)}. Accuracy uses semantic normalization, so unstated duration (null) and labelled zero are treated as equivalent. Refill-derived evidence is not actual medication-taking behaviour.`;
+      $("note-table").innerHTML = state.extraction.slice(0, 50).map(row => `<tr><td>${row.patient_id}</td><td style="white-space:normal;min-width:330px">${row.note}</td><td>${bool(row.missed_doses) ? `Yes${row.missed_duration_days ? ` (${row.missed_duration_days} days)` : ""}` : "No"}</td><td>${bool(row.refill_delay) ? (row.delay_reason || "Yes") : "No"}</td><td>${bool(row.discontinuation) ? (row.discontinuation_reason || "Yes") : "No"}</td><td style="white-space:normal">${row.evidence || "—"}</td></tr>`).join("");
+    }
+    function renderExtractionStatus() {
+      const status = state.extractionStatus;
+      $("llm-status").textContent = status?.status === "quota_limit" ? "Limit reached" : "Not run";
+      $("llm-status").className = status?.status === "quota_limit" ? "pill warn" : "pill";
+      $("llm-method").textContent = status?.message || "No Gemini extraction output was found. Run extract_note_signals.py successfully; the browser does not call Gemini or read .env.";
+    }
+    $("evaluate-batch").addEventListener("click", async () => {
+      const button = $("evaluate-batch");
+      button.disabled = true; button.textContent = "Evaluating…";
+      try {
+        const response = await fetch("/api/evaluate-next-batch", { method: "POST" });
+        const contentType = response.headers.get("content-type") || "";
+        const responseText = await response.text();
+        let result;
+        if (contentType.includes("application/json")) {
+          try {
+            result = JSON.parse(responseText);
+          } catch (_) {
+            throw new Error("The dashboard server returned malformed JSON");
+          }
+        } else {
+          throw new Error("The batch endpoint returned an HTML page. Start the dashboard with `python .\\dashboard_server.py`, then reload this page.");
+        }
+        if (!response.ok) throw new Error(result.message || "Batch evaluation failed");
+        $("llm-method").textContent = result.message;
+        const names = ["note_extraction_results.csv", "note_extraction_metrics.json", "note_extraction_status.json"];
+        const [results, metrics, status] = await Promise.all(names.map(name => fetch(`data/generated/${name}?t=${Date.now()}`)));
+        if (results.ok && metrics.ok) {
+          state.extraction = csv(await results.text());
+          state.extractionMetrics = await metrics.json();
+          state.extractionStatus = status.ok ? await status.json() : null;
+          renderExtraction();
+        }
+      } catch (error) {
+        $("llm-method").textContent = `${error.message}. Start the site with dashboard_server.py, not python -m http.server.`;
+      } finally {
+        button.disabled = false; button.textContent = "Evaluate next 15";
+      }
+    });
+    document.querySelectorAll("[data-quarter]").forEach(button => button.addEventListener("click", () => {
+      state.quarter = button.dataset.quarter;
+      document.querySelectorAll("[data-quarter]").forEach(b => b.setAttribute("aria-pressed", String(b === button)));
+      render();
+    }));
+    ["cohort-filter", "hub-filter", "manager-filter"].forEach(id => $(id).addEventListener("change", render));
+    $("folder-picker").addEventListener("change", async (event) => {
+      const files = Object.fromEntries([...event.target.files].map(file => [file.name, file]));
+      if (!files["patient_records.csv"] || !files["pharmacy_hub_fills.csv"] || !files["crm_case_manager_notes.csv"]) {
+        $("error").textContent = "Select a folder containing patient_records.csv, pharmacy_hub_fills.csv, and crm_case_manager_notes.csv.";
+        $("error").style.display = "block"; return;
+      }
+      state.patients = await readFile(files["patient_records.csv"]); state.fills = await readFile(files["pharmacy_hub_fills.csv"]); state.notes = await readFile(files["crm_case_manager_notes.csv"]);
+      $("error").style.display = "none"; render();
+    });
+    loadDefault().catch(error => { $("error").textContent = `${error.message}. Run a local web server or load a generated output folder with the picker.`; $("error").style.display = "block"; $("data-status").textContent = "No data loaded"; });
+  </script>
+</body>
+</html>

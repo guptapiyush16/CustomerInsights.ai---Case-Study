@@ -1,0 +1,4 @@
+signal,precision,recall,f1,agreement
+missed_doses,1.0,1.0,1.0,1.0
+refill_delay,0.75,1.0,0.8571428571428571,0.8
+discontinuation,0.0,0.0,0.0,1.0
