@@ -123,9 +123,10 @@
         <select id="manager-filter"><option value="all">All case managers</option></select>
       </label>
       <div class="spacer"></div>
-      <label>Load another output folder
+      <label title="Use this to preview a different generated dataset without replacing the files in data/generated. The folder must contain the required patient, pharmacy-fill, and CRM-note CSV files.">Load another output folder
         <input id="folder-picker" type="file" webkitdirectory directory multiple>
       </label>
+      <span class="panel-note">Loads a different generated dataset into this dashboard only.</span>
     </section>
 
     <section class="metrics" aria-label="Summary metrics">

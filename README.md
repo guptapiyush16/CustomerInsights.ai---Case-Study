@@ -137,9 +137,14 @@ Generate the CSVs first, then serve the project directory locally:
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000/reconciliation_view.html`. If the browser blocks
-local CSV loading, use the **Load another output folder** picker and select the
-folder containing the three generated CSV files.
+Open `http://localhost:8000/reconciliation_view.html`. The dashboard normally
+reads data from `data/generated/`. **Load another output folder** lets you
+preview a different generated dataset in the current browser session without
+copying, moving, or overwriting project files. Select a folder containing
+`patient_records.csv`, `pharmacy_hub_fills.csv`, and
+`crm_case_manager_notes.csv`; the dashboard then recalculates its filters,
+KPIs, cohort table, and gap bridge from those selected files. Optional Gemini
+result files are still loaded from `data/generated/`.
 
 The site includes the complete Exhibit 2 comparison:
 
