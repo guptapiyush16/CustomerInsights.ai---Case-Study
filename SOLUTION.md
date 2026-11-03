@@ -38,9 +38,12 @@ The pipeline metric is the proportion of all enrolled patients with pharmacy
 fill-derived PDC of at least 80%. The CRM population follows the original case
 definition: patients with at least one specialty-pharmacy fill. Within that
 population, the CRM metric is the proportion whose case-manager flag says the
-refill was on schedule. A fill-population patient with no CRM note remains in
-the CRM denominator and is counted as not on schedule for this operational
-metric; the implementation does not silently remove that patient.
+refill was on schedule. A fill-population patient with no CRM note remains
+visible in the denominator and is reported separately as **missing CRM
+documentation**; absence of a note is not evidence that a refill was late.
+The synthetic bridge retains the original denominator so that Exhibit 2 can be
+reproduced, while a production implementation should publish CRM coverage and
+the missing-documentation count alongside the operational indicator.
 
 ### Gap bridge
 
@@ -147,14 +150,17 @@ remain in the denominator and receive a false/not-on-schedule CRM signal.
 The labelled sample compares Gemini output with synthetic note labels using
 precision, recall, F1, binary agreement, reason accuracy, and exact-record
 accuracy. It also compares the extracted refill-delay signal with delayed
-pharmacy fills. The observed five-note evaluation result was:
+pharmacy fills. Strict exact-record accuracy and normalized exact-record
+accuracy are reported separately from refill-evidence agreement. The observed
+five-note evaluation result was:
 
 | Signal / measure | Result | Interpretation |
 |---|---:|---|
 | Missed-dose F1 | 100.0% | 1 labelled positive; the model matched it |
 | Refill-delay F1 | 85.7% | 3 labelled positives; one false positive reduced precision |
 | Discontinuation F1 | 0.0% | 0 labelled positives; recall was not estimable |
-| Exact-record accuracy | 20.0% | Only 1 of 5 rows matched every compared field exactly |
+| Strict exact-record accuracy | 20.0% | Only 1 of 5 rows matched every compared field literally |
+| Normalized exact-record accuracy | 80.0% | Null/zero duration equivalence applied before row comparison |
 | Refill-evidence agreement | 80.0% | Agreement with delayed hub-fill evidence, not ingestion |
 
 These results are intentionally reported without hiding the weaker outcomes.
@@ -196,11 +202,12 @@ while the label was generated from the hub-fill status. This exposes a
 real source/definition ambiguity rather than a simple parsing error.
 
 The correct response is to add a manually adjudicated, stratified test set
-and define null/zero equivalence before scoring. The dashboard reports this
-normalized result as **Accuracy**: an unstated duration (`null`) and a labelled
-zero are treated as equivalent because both mean that no missed-dose duration
-was recorded. This prevents a representation difference from being counted as
-a substantive extraction error.
+and define null/zero equivalence before scoring. The dashboard reports this as
+**Normalized exact-record accuracy**: an unstated duration (`null`) and a
+labelled zero are treated as equivalent because both mean that no missed-dose
+duration was recorded. This prevents a representation difference from being
+counted as a substantive extraction error. It is distinct from strict
+exact-record accuracy and from refill-evidence agreement.
 
 The refill comparison is explicitly an operational-evidence agreement measure.
 It is not a measure of whether a patient actually took medication.
@@ -340,7 +347,8 @@ Population, definition, and source contributions are separately reported.
 Completed with Gemini structured JSON extraction for missed doses, missed
 duration, missed-dose reasons, refill delays, delay reasons, discontinuation,
 discontinuation reasons, and evidence. The evaluation reports precision,
-recall, F1, agreement, reason accuracy, and exact-record accuracy.
+recall, F1, agreement, reason accuracy, strict exact-record accuracy, and
+normalized exact-record accuracy.
 
 The results are reported honestly: missed-dose F1 was 100%, refill-delay F1
 was 85.7%, discontinuation F1 was 0% on a sample with no positive
@@ -419,6 +427,12 @@ dashboard. The submission states assumptions, sources, definitions, evaluation
 results, weak discontinuation performance, exact-record limitations, CRM
 population handling, refill-evidence limitations, API quota behavior, and
 production next steps.
+
+**Board recommendation:** Report 58% as the provisional pharmacy-based PDC
+result and 71% separately as the CRM-reported refill-on-schedule indicator.
+Disclose the 13-percentage-point difference and explain the definition and
+data-source contributions. Adopt PDC >=80% as the proposed primary adherence
+standard, subject to client approval and validation using real data.
 
 The main conclusion is that the discrepancy is the combined result of
 population eligibility, different adherence definitions, and differences

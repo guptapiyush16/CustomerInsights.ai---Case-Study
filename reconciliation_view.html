@@ -179,7 +179,7 @@
         <div class="signal-card"><span>Missed-dose F1</span><strong>—</strong></div>
         <div class="signal-card"><span>Refill-delay F1</span><strong>—</strong></div>
         <div class="signal-card"><span>Discontinuation F1</span><strong>—</strong></div>
-        <div class="signal-card"><span>Accuracy</span><strong>—</strong></div>
+        <div class="signal-card"><span>Normalized exact-record accuracy</span><strong>—</strong></div>
       </div>
       <p class="method" id="llm-method">Run the local extraction command to populate this section. Refill-derived evidence is not ground truth for whether medication was swallowed.</p>
       <div class="table-wrap note-table" style="margin-top: 12px;">
@@ -308,7 +308,8 @@
         const note = state.notes.find(n => n.quarter === q && n.patient_id === p.patient_id);
         const fill = state.fills.find(f => f.quarter === q && f.patient_id === p.patient_id);
         const pdc = Number(p[`${q}_pdc`] || 0);
-        return `<tr><td>${p.patient_id}</td><td>${fill?.pharmacy_hub || "—"}</td><td>${note?.case_manager || "—"}</td><td class="num">${pct(pdc)}</td><td>${note && bool(note.refilled_on_schedule) ? "On schedule" : "Not on schedule"}</td><td><span class="pill ${pdc >= .8 ? "good" : "warn"}">${pdc >= .8 ? "Adherent" : "Non-adherent"}</span></td></tr>`;
+        const crmStatus = !note ? "No CRM note" : (bool(note.refilled_on_schedule) ? "On schedule" : "Not on schedule");
+        return `<tr><td>${p.patient_id}</td><td>${fill?.pharmacy_hub || "—"}</td><td>${note?.case_manager || "—"}</td><td class="num">${pct(pdc)}</td><td>${crmStatus}</td><td><span class="pill ${pdc >= .8 ? "good" : "warn"}">${pdc >= .8 ? "Adherent" : "Non-adherent"}</span></td></tr>`;
       }).join("");
       $("table-empty").hidden = rows.length !== 0;
       $("data-status").textContent = `${state.patients.length.toLocaleString()} synthetic patients · ${q === "this_quarter" ? "This quarter" : "Last quarter"}`;
@@ -324,10 +325,10 @@
         ["Missed-dose F1", f1("missed_doses")],
         ["Refill-delay F1", f1("refill_delay")],
         ["Discontinuation F1", f1("discontinuation")],
-        ["Accuracy", pct(metrics.extraction_accuracy_normalized_record || 0)]
+        ["Normalized exact-record accuracy", pct(metrics.extraction_accuracy_normalized_record || 0)]
       ].map(([label, value]) => `<div class="signal-card"><span>${label}</span><strong>${value}</strong></div>`).join("");
       const evidence = metrics.agreement_with_refill_evidence?.refill_delay_agreement;
-      $("llm-method").textContent = `Evaluated ${state.extraction.length.toLocaleString()} labelled notes. Refill-delay agreement with hub evidence: ${pct(evidence || 0)}. Accuracy uses semantic normalization, so unstated duration (null) and labelled zero are treated as equivalent. Refill-derived evidence is not actual medication-taking behaviour.`;
+      $("llm-method").textContent = `Evaluated ${state.extraction.length.toLocaleString()} labelled notes. Strict exact-record accuracy: ${pct(metrics.extraction_accuracy_exact_record || 0)}; normalized exact-record accuracy: ${pct(metrics.extraction_accuracy_normalized_record || 0)}; refill-evidence agreement: ${pct(evidence || 0)}. Normalization treats unstated duration (null) and labelled zero as equivalent. Refill-derived evidence is not actual medication-taking behaviour.`;
       $("note-table").innerHTML = state.extraction.slice(0, 50).map(row => `<tr><td>${row.patient_id}</td><td style="white-space:normal;min-width:330px">${row.note}</td><td>${bool(row.missed_doses) ? `Yes${row.missed_duration_days ? ` (${row.missed_duration_days} days)` : ""}` : "No"}</td><td>${bool(row.refill_delay) ? (row.delay_reason || "Yes") : "No"}</td><td>${bool(row.discontinuation) ? (row.discontinuation_reason || "Yes") : "No"}</td><td style="white-space:normal">${row.evidence || "—"}</td></tr>`).join("");
     }
     function renderExtractionStatus() {

@@ -71,9 +71,9 @@ definition -> data source**:
    least one specialty-pharmacy fill.
 3. Replace PDC with a hub-derived on-time refill flag.
 4. Replace the hub flag with the CRM case-manager flag (CRM). Patients in the
-   fill population without a CRM note remain in the denominator and are
-   treated as not on schedule for this operational metric; they are not
-   silently removed.
+   fill population without a CRM note remain visible in the denominator and
+   are reported as missing CRM documentation; absence of a note is not proof
+   of a late refill.
 
 The three percentage-point effects sum to the observed CRM-minus-pipeline gap.
 This order is stated explicitly because interaction effects mean that changing

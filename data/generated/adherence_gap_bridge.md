@@ -9,7 +9,7 @@ The stages are:
 1. Pipeline observed: all enrolled patients, hub-fill PDC >= 80%.
 2. Population-adjusted: patients with at least one specialty-pharmacy fill, still using hub-fill PDC >= 80%.
 3. Definition-adjusted: the same fill population, using a hub-derived on-time refill flag.
-4. CRM observed: the same fill population, using the case-manager flag; missing CRM notes remain in the denominator and count as not on schedule.
+4. CRM observed: the same fill population, using the case-manager flag; missing CRM notes remain visible in the denominator and are reported separately as missing documentation.
 
 | Quarter | Pipeline | CRM | Gap | Population effect | Definition effect | Source effect | Bridge check |
 |---|---:|---:|---:|---:|---:|---:|---:|
